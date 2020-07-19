@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Clutter Weapon Hands (Continued)</name>
+  <packageId>Mlie.ClutterWeaponHands</packageId>
+  <author>mrofa</author>
+  <url>https://github.com/emipa606/ClutterWeaponHands</url>
+  <supportedVersions>
+    <li>1.0</li>
+    <li>1.1</li>
+  </supportedVersions>
+  <modDependencies />
+  <loadAfter />
+  <description>Update of mrofas mod for RimWorld 1.1
+https://ludeon.com/forums/index.php?topic=17610.0
+
+[img]https://i.imgur.com/GYswkZ7.png[/img]
+
+Support-chat:
+https://invite.gg/mlie
+
+Non-steam version:
+https://github.com/emipa606/ClutterWeaponHands
+	
+--- Original Description ---
+Add hands to pawns that hold weapons(vanilla weapons only)</description>
+</ModMetaData>
