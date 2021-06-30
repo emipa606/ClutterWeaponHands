@@ -6,210 +6,236 @@ namespace WHands
     [StaticConstructorOnStartup]
     public class HandDrawer : ThingComp
     {
+        public Vector3 FHand;
         public Graphic HandTex;
 
         public int PrimaryID;
-
-        public Vector3 FHand;
 
         public Vector3 SHand;
 
         public bool TwoHand = true;
 
-        public override void PostSpawnSetup(bool respawningAfterLoad)
-        {
-            base.PostSpawnSetup(respawningAfterLoad);
-        }
-
         public void ReadXML()
         {
-            WhandCompProps whandCompProps = (WhandCompProps)this.props;
+            var whandCompProps = (WhandCompProps) props;
             if (whandCompProps.MainHand != Vector3.zero)
             {
-                this.FHand = whandCompProps.MainHand;
+                FHand = whandCompProps.MainHand;
             }
+
             if (whandCompProps.SecHand != Vector3.zero)
             {
-                this.SHand = whandCompProps.SecHand;
+                SHand = whandCompProps.SecHand;
             }
         }
 
         private bool CarryWeaponOpenly(Pawn pawn)
         {
-            return (pawn.carryTracker == null || pawn.carryTracker.CarriedThing == null) && (pawn.Drafted || (pawn.CurJob != null && pawn.CurJob.def.alwaysShowWeapon) || (pawn.mindState.duty != null && pawn.mindState.duty.def.alwaysShowWeapon));
+            return pawn.carryTracker?.CarriedThing == null && (pawn.Drafted ||
+                                                               pawn.CurJob != null &&
+                                                               pawn.CurJob.def.alwaysShowWeapon ||
+                                                               pawn.mindState.duty != null &&
+                                                               pawn.mindState.duty.def.alwaysShowWeapon);
         }
 
         private void AngleCalc(Vector3 rootLoc)
         {
-            Pawn pawn = this.parent as Pawn;
-            if (!pawn.Dead && pawn.Spawned)
+            var pawn = parent as Pawn;
+            if (pawn != null && (pawn.Dead || !pawn.Spawned))
             {
-                if (pawn.equipment != null && pawn.equipment.Primary != null)
-                {
-                    if (pawn.CurJob == null || !pawn.CurJob.def.neverShowWeapon)
-                    {
-                        WhandCompProps compProperties = pawn.equipment.Primary.def.GetCompProperties<WhandCompProps>();
-                        if (compProperties != null)
-                        {
-                            this.FHand = compProperties.MainHand;
-                            this.SHand = compProperties.SecHand;
-                        }
-                        else
-                        {
-                            this.SHand = Vector3.zero;
-                            this.FHand = Vector3.zero;
-                        }
-                        rootLoc.y += 0.0449999981f;
-                        Stance_Busy stance_Busy = pawn.stances.curStance as Stance_Busy;
-                        if (stance_Busy != null && !stance_Busy.neverAimWeapon && stance_Busy.focusTarg.IsValid)
-                        {
-                            Vector3 a;
-                            if (stance_Busy.focusTarg.HasThing)
-                            {
-                                a = stance_Busy.focusTarg.Thing.DrawPos;
-                            }
-                            else
-                            {
-                                a = stance_Busy.focusTarg.Cell.ToVector3Shifted();
-                            }
-                            float num = 0f;
-                            if (GenGeo.MagnitudeHorizontalSquared(a - pawn.DrawPos) > 0.001f)
-                            {
-                                num = Vector3Utility.AngleFlat(a - pawn.DrawPos);
-                            }
-                            Vector3 b = Vector3Utility.RotatedBy(new Vector3(0f, 0f, 0.4f), num);
-                            this.DrawHands(pawn.equipment.Primary, rootLoc + b, num);
-                        }
-                        else if (this.CarryWeaponOpenly(pawn))
-                        {
-                            if (pawn.Rotation == Rot4.South)
-                            {
-                                Vector3 drawLoc = rootLoc + new Vector3(0f, 0f, -0.22f);
-                                this.DrawHands(pawn.equipment.Primary, drawLoc, 143f);
-                            }
-                            else if (pawn.Rotation == Rot4.East)
-                            {
-                                Vector3 drawLoc2 = rootLoc + new Vector3(0.2f, 0f, -0.22f);
-                                this.DrawHands(pawn.equipment.Primary, drawLoc2, 143f);
-                            }
-                            else if (pawn.Rotation == Rot4.West)
-                            {
-                                Vector3 drawLoc3 = rootLoc + new Vector3(-0.2f, 0f, -0.22f);
-                                this.DrawHands(pawn.equipment.Primary, drawLoc3, 217f);
-                            }
-                        }
-                        else
-                        {
-                            GunDraver(pawn.equipment.Primary, pawn.DrawPos, pawn);
-                        }
-                    }
-                }
+                return;
             }
-        }
-        public void GunDraver(Thing eq, Vector3 drawLoc, Pawn pawn)
-        {
-            if (eq != null && eq.def.defName == "Gun_Pistol")
-            {
-                Vector3 WepHolderPos = new Vector3(0, 5f, 0);
-                Matrix4x4 matrix = default(Matrix4x4);
-                Vector3 size = new Vector3(0.84f, 0f, 0.84f);
-                Mesh mesh = MeshPool.plane10;
-                float num = 90;
 
+            if (pawn?.equipment?.Primary == null)
+            {
+                return;
+            }
+
+            if (pawn.CurJob != null && pawn.CurJob.def.neverShowWeapon)
+            {
+                return;
+            }
+
+            var compProperties = pawn.equipment.Primary.def.GetCompProperties<WhandCompProps>();
+            if (compProperties != null)
+            {
+                FHand = compProperties.MainHand;
+                SHand = compProperties.SecHand;
+            }
+            else
+            {
+                SHand = Vector3.zero;
+                FHand = Vector3.zero;
+            }
+
+            rootLoc.y += 0.0449999981f;
+            if (pawn.stances.curStance is Stance_Busy {neverAimWeapon: false} stance_Busy &&
+                stance_Busy.focusTarg.IsValid)
+            {
+                var a = stance_Busy.focusTarg.HasThing
+                    ? stance_Busy.focusTarg.Thing.DrawPos
+                    : stance_Busy.focusTarg.Cell.ToVector3Shifted();
+
+                var num = 0f;
+                if ((a - pawn.DrawPos).MagnitudeHorizontalSquared() > 0.001f)
+                {
+                    num = (a - pawn.DrawPos).AngleFlat();
+                }
+
+                var b = new Vector3(0f, 0f, 0.4f).RotatedBy(num);
+                DrawHands(pawn.equipment.Primary, rootLoc + b, num);
+            }
+            else if (CarryWeaponOpenly(pawn))
+            {
                 if (pawn.Rotation == Rot4.South)
                 {
-                    WepHolderPos = new Vector3(0.3f, 5f, -0.3f);
-                    num = 270f;
+                    var drawLoc = rootLoc + new Vector3(0f, 0f, -0.22f);
+                    DrawHands(pawn.equipment.Primary, drawLoc, 143f);
                 }
                 else if (pawn.Rotation == Rot4.East)
                 {
-                    WepHolderPos = new Vector3(0, 5f, -0.3f);
+                    var drawLoc2 = rootLoc + new Vector3(0.2f, 0f, -0.22f);
+                    DrawHands(pawn.equipment.Primary, drawLoc2, 143f);
                 }
                 else if (pawn.Rotation == Rot4.West)
                 {
-                    WepHolderPos = new Vector3(0, 0f, -0.3f);
-                    num = 270f;
+                    var drawLoc3 = rootLoc + new Vector3(-0.2f, 0f, -0.22f);
+                    DrawHands(pawn.equipment.Primary, drawLoc3, 217f);
                 }
-                else if (pawn.Rotation == Rot4.North)
-                {
-                    WepHolderPos = new Vector3(-0.3f, 0f, -0.3f);
-                    num = 75f;
-                }
-                matrix.SetTRS(drawLoc + WepHolderPos, Quaternion.AngleAxis(num, Vector3.up), size);
-                Graphics.DrawMesh(mesh, matrix, eq.Graphic.MatSingle, 0);
             }
+            else
+            {
+                GunDraver(pawn.equipment.Primary, pawn.DrawPos, pawn);
+            }
+        }
+
+        public void GunDraver(Thing eq, Vector3 drawLoc, Pawn pawn)
+        {
+            if (eq == null || eq.def.defName != "Gun_Pistol")
+            {
+                return;
+            }
+
+            var WepHolderPos = new Vector3(0, 5f, 0);
+            var matrix = default(Matrix4x4);
+            var size = new Vector3(0.84f, 0f, 0.84f);
+            var mesh = MeshPool.plane10;
+            float num = 90;
+
+            if (pawn.Rotation == Rot4.South)
+            {
+                WepHolderPos = new Vector3(0.3f, 5f, -0.3f);
+                num = 270f;
+            }
+            else if (pawn.Rotation == Rot4.East)
+            {
+                WepHolderPos = new Vector3(0, 5f, -0.3f);
+            }
+            else if (pawn.Rotation == Rot4.West)
+            {
+                WepHolderPos = new Vector3(0, 0f, -0.3f);
+                num = 270f;
+            }
+            else if (pawn.Rotation == Rot4.North)
+            {
+                WepHolderPos = new Vector3(-0.3f, 0f, -0.3f);
+                num = 75f;
+            }
+
+            matrix.SetTRS(drawLoc + WepHolderPos, Quaternion.AngleAxis(num, Vector3.up), size);
+            Graphics.DrawMesh(mesh, matrix, eq.Graphic.MatSingle, 0);
         }
 
         public void DrawHands(Thing eq, Vector3 drawLoc, float aimAngle)
         {
-            bool flag = false;
-            Pawn pawn = this.parent as Pawn;
-            float num = aimAngle - 90f;
+            var flag = false;
+            var pawn = parent as Pawn;
+            var num = aimAngle - 90f;
             if (aimAngle > 20f && aimAngle < 160f)
             {
-                Mesh mesh = MeshPool.plane10;
+                var unused = MeshPool.plane10;
                 num += eq.def.equippedAngleOffset;
             }
             else if (aimAngle > 200f && aimAngle < 340f)
             {
-                Mesh mesh = MeshPool.plane10Flip;
+                var unused = MeshPool.plane10Flip;
                 num -= 180f;
                 num -= eq.def.equippedAngleOffset;
                 flag = true;
             }
             else
             {
-                Mesh mesh = MeshPool.plane10;
+                var unused = MeshPool.plane10;
                 num += eq.def.equippedAngleOffset;
             }
+
             num %= 360f;
-            if (this.HandTex != null)
+            if (HandTex != null)
             {
-                Material matSingle = this.HandTex.MatSingle;
-                matSingle.color = pawn.story.SkinColor;
-                if (matSingle != null)
+                var matSingle = HandTex.MatSingle;
+                if (pawn == null)
                 {
-                    matSingle.color = pawn.story.SkinColor;
-                    if (this.FHand != Vector3.zero)
-                    {
-                        float num2 = this.FHand.x;
-                        float z = this.FHand.z;
-                        float y = this.FHand.y;
-                        if (flag)
-                        {
-                            num2 = -num2;
-                        }
-                        Graphics.DrawMesh(MeshPool.plane10, drawLoc + Vector3Utility.RotatedBy(new Vector3(num2, y, z), num), Quaternion.AngleAxis(num, Vector3.up), matSingle, 0);
-                    }
-                    if (this.SHand != Vector3.zero)
-                    {
-                        float num3 = this.SHand.x;
-                        float z2 = this.SHand.z;
-                        float y2 = this.SHand.y;
-                        if (flag)
-                        {
-                            num3 = -num3;
-                        }
-                        Graphics.DrawMesh(MeshPool.plane10, drawLoc + Vector3Utility.RotatedBy(new Vector3(num3, y2, z2), num), Quaternion.AngleAxis(num, Vector3.up), matSingle, 0);
-                    }
+                    return;
                 }
+
+                matSingle.color = pawn.story.SkinColor;
+
+                matSingle.color = pawn.story.SkinColor;
+                if (FHand != Vector3.zero)
+                {
+                    var num2 = FHand.x;
+                    var z = FHand.z;
+                    var y = FHand.y;
+                    if (flag)
+                    {
+                        num2 = -num2;
+                    }
+
+                    Graphics.DrawMesh(MeshPool.plane10, drawLoc + new Vector3(num2, y, z).RotatedBy(num),
+                        Quaternion.AngleAxis(num, Vector3.up), matSingle, 0);
+                }
+
+                if (SHand == Vector3.zero)
+                {
+                    return;
+                }
+
+                var num3 = SHand.x;
+                var z2 = SHand.z;
+                var y2 = SHand.y;
+                if (flag)
+                {
+                    num3 = -num3;
+                }
+
+                Graphics.DrawMesh(MeshPool.plane10, drawLoc + new Vector3(num3, y2, z2).RotatedBy(num),
+                    Quaternion.AngleAxis(num, Vector3.up), matSingle, 0);
             }
-            else if (this.HandTex == null)
+            else if (HandTex == null)
             {
-                this.HandTex = GraphicDatabase.Get<Graphic_Single>("Hand", ShaderDatabase.CutoutSkin, new Vector2(1f, 1f), pawn.story.SkinColor, pawn.story.SkinColor);
+                if (pawn != null)
+                {
+                    HandTex = GraphicDatabase.Get<Graphic_Single>("Hand", ShaderDatabase.CutoutSkin,
+                        new Vector2(1f, 1f),
+                        pawn.story.SkinColor, pawn.story.SkinColor);
+                }
             }
         }
 
         public override void PostDraw()
         {
-            if (this.HandTex != null)
+            if (HandTex != null)
             {
-                this.AngleCalc(this.parent.DrawPos);
+                AngleCalc(parent.DrawPos);
             }
             else
             {
-                Pawn pawn = this.parent as Pawn;
-                this.HandTex = GraphicDatabase.Get<Graphic_Single>("Hand", ShaderDatabase.CutoutSkin, new Vector2(1f, 1f), pawn.story.SkinColor, pawn.story.SkinColor);
+                if (parent is Pawn pawn)
+                {
+                    HandTex = GraphicDatabase.Get<Graphic_Single>("Hand", ShaderDatabase.CutoutSkin,
+                        new Vector2(1f, 1f),
+                        pawn.story.SkinColor, pawn.story.SkinColor);
+                }
             }
         }
     }
