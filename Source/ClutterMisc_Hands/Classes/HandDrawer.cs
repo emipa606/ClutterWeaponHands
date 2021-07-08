@@ -148,7 +148,7 @@ namespace WHands
 
         public void DrawHands(Thing eq, Vector3 drawLoc, float aimAngle)
         {
-            var flag = false;
+            var b = false;
             var pawn = parent as Pawn;
             var num = aimAngle - 90f;
             if (aimAngle > 20f && aimAngle < 160f)
@@ -161,7 +161,7 @@ namespace WHands
                 var unused = MeshPool.plane10Flip;
                 num -= 180f;
                 num -= eq.def.equippedAngleOffset;
-                flag = true;
+                b = true;
             }
             else
             {
@@ -186,7 +186,7 @@ namespace WHands
                     var num2 = FHand.x;
                     var z = FHand.z;
                     var y = FHand.y;
-                    if (flag)
+                    if (b)
                     {
                         num2 = -num2;
                     }
@@ -203,7 +203,7 @@ namespace WHands
                 var num3 = SHand.x;
                 var z2 = SHand.z;
                 var y2 = SHand.y;
-                if (flag)
+                if (b)
                 {
                     num3 = -num3;
                 }

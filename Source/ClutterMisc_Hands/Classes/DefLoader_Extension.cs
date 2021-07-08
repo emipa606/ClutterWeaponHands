@@ -83,9 +83,8 @@ namespace WHands
                         continue;
                     }
 
-                    var Compie = new WhandCompProps {compClass = typeof(WhandComp)};
+                    var Compie = new WhandCompProps {compClass = typeof(WhandComp), MainHand = WepSets.MainHand};
 
-                    Compie.MainHand = WepSets.MainHand;
 
                     if (WepSets.MainHand == Vector3.zero)
                     {
